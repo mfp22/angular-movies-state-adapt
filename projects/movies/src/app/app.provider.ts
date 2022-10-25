@@ -9,6 +9,7 @@ import {
   withInMemoryScrolling,
 } from '@angular/router';
 import { ROUTES } from './app.routing';
+import { defaultStoreProvider } from '@state-adapt/angular';
 
 export const APP_PROVIDERS = [
   provideRouter(
@@ -52,4 +53,5 @@ export const APP_PROVIDERS = [
    * Configure RxAngular to get maximum performance.
    */
   RXA_PROVIDER,
+  defaultStoreProvider,
 ];
