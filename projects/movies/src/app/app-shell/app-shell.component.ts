@@ -52,7 +52,6 @@ import { booleanAdapter } from '@state-adapt/core/adapters';
   styleUrls: ['./app-shell.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.Emulated,
-  providers: [RxState, RxEffects, RxActionFactory],
 })
 export class AppShellComponent {
   urlChange$ = this.router.events.pipe(
