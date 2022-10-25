@@ -13,6 +13,7 @@ import {
   filter,
   map,
   shareReplay,
+  Subject,
   switchMap,
 } from 'rxjs';
 import { TMDBMovieGenreModel } from '../data-access/api/model/movie-genre.model';
@@ -31,10 +32,9 @@ import { DarkModeToggleComponent } from '../ui/component/dark-mode-toggle/dark-m
 import { ForModule } from '@rx-angular/template/for';
 import { LazyDirective } from '../shared/cdk/lazy/lazy.directive';
 import { FastSvgModule } from '@push-based/ngx-fast-svg';
-type Actions = {
-  sideDrawerOpenToggle: boolean;
-  loadAccountMenu: void;
-};
+import { adapt } from '@state-adapt/angular';
+import { toSource } from '@state-adapt/rxjs';
+import { booleanAdapter } from '@state-adapt/core/adapters';
 
 @Component({
   standalone: true,
@@ -58,13 +58,24 @@ type Actions = {
   providers: [RxState, RxEffects, RxActionFactory],
 })
 export class AppShellComponent {
-  readonly ui = this.actionsF.create();
+  urlChange$ = this.router.events.pipe(
+    filter((e) => e instanceof NavigationEnd),
+    map((e) => (e as NavigationEnd).urlAfterRedirects),
+    distinctUntilChanged(),
+    toSource('urlChange$')
+  );
+
+  sideDrawerOpen = adapt(['app-shell.sideDrawerOpen', false, booleanAdapter], {
+    setFalse: this.urlChange$,
+  });
 
   search$ = this.routerState.select(
     getIdentifierOfTypeAndLayoutUtil('search', 'list')
   );
 
-  accountMenuComponent$ = this.ui.loadAccountMenu$.pipe(
+  loadAccountMenu$ = new Subject<void>();
+
+  accountMenuComponent$ = this.loadAccountMenu$.pipe(
     switchMap(() =>
       import('./account-menu/account-menu.component.lazy').then(({ c }) => c)
     ),
@@ -72,17 +83,11 @@ export class AppShellComponent {
   );
 
   constructor(
-    private readonly state: RxState<{
-      sideDrawerOpen: boolean;
-    }>,
-    public effects: RxEffects,
     public routerState: RouterState,
     public genreResource: GenreResource,
     @Inject(DOCUMENT) document: Document,
-    private router: Router,
-    private actionsF: RxActionFactory<Actions>
+    private router: Router
   ) {
-    this.init();
     /**
      * **🚀 Perf Tip for TBT:**
      *
@@ -98,23 +103,7 @@ export class AppShellComponent {
     });
   }
 
-  init() {
-    this.state.set({ sideDrawerOpen: false });
-    this.state.connect('sideDrawerOpen', this.ui.sideDrawerOpenToggle$);
-
-    this.effects.register(
-      this.router.events.pipe(
-        filter((e) => e instanceof NavigationEnd),
-        map((e) => (e as NavigationEnd).urlAfterRedirects),
-        distinctUntilChanged()
-      ),
-      () => this.closeSidenav()
-    );
-  }
-
   readonly genres$ = this.genreResource.getGenresCached();
-
-  readonly viewState$ = this.state.select();
 
   readonly trackByGenre: TrackByFunction<TMDBMovieGenreModel> =
     trackByProp<TMDBMovieGenreModel>('name');
@@ -124,8 +113,4 @@ export class AppShellComponent {
       ? this.router.navigate(['list/category/popular'])
       : this.router.navigate([`list/search/${term}`]);
   }
-
-  closeSidenav = () => {
-    this.ui.sideDrawerOpenToggle(false);
-  };
 }

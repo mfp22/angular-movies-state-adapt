@@ -1,8 +1,8 @@
-<ng-container *rxLet="viewState$; let vs">
+<ng-container *rxLet="sideDrawerOpen.state$; let opened">
   <ui-side-drawer
     *rxLet="[]"
-    [opened]="vs.sideDrawerOpen"
-    (openedChange)="ui.sideDrawerOpenToggle(false)"
+    [opened]="opened"
+    (openedChange)="sideDrawerOpen.setFalse()"
   >
     <a class="navigation-header" aria-label="Main page" href="/">
       <fast-svg name="movies-logo" size="150"></fast-svg>
@@ -85,7 +85,7 @@
       <ui-hamburger-button
         data-uf="menu-btn"
         class="ui-toolbar--action"
-        (click)="ui.sideDrawerOpenToggle(!vs.sideDrawerOpen)"
+        (click)="sideDrawerOpen.set(!opened)"
       >
       </ui-hamburger-button>
       <div class="ui-toolbar--widget-container">
@@ -100,7 +100,7 @@
             aria-label="Toggle profile menu"
             name="profile"
             class="profile-button"
-            (mouseenter)="ui.loadAccountMenu()"
+            (mouseenter)="loadAccountMenu$.next()"
           >
             <div class="focus-overlay"></div>
             <fast-svg name="account"></fast-svg>
