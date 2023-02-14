@@ -1,12 +1,14 @@
 import { CommonModule, DOCUMENT } from '@angular/common';
-import { RxState } from '@rx-angular/state';
 import {
   ChangeDetectionStrategy,
   Component,
-  Inject,
   ViewEncapsulation,
+  inject,
 } from '@angular/core';
 import { LetModule } from '@rx-angular/template/let';
+import { adapt } from '@state-adapt/angular';
+import { booleanAdapter } from '@state-adapt/core/adapters';
+import { tap } from 'rxjs';
 
 @Component({
   standalone: true,
@@ -14,23 +16,25 @@ import { LetModule } from '@rx-angular/template/let';
   selector: 'ui-dark-mode-toggle',
   template: `
     <div class="dark-mode-toggle">
+      <ng-container *ngIf="applyThemeToDocument$ | async">asdf</ng-container>
+
       <button
         aria-label="Enable dark mode"
         type="button"
         class="light"
-        (click)="setChecked(true)"
+        (click)="isLightTheme.setTrue()"
       >
         ☀
       </button>
 
       <span class="toggle">
         <input
-          *rxLet="isLightTheme$; let checked; strategy: 'immediate'"
+          *rxLet="isLightTheme.state$; let checked; strategy: 'immediate'"
           class="toggle-track"
           type="checkbox"
           id="dark-mode"
           [checked]="checked"
-          (change)="setChecked(!checked)"
+          (change)="isLightTheme.toggle()"
         />
         <label style="color: transparent" for="dark-mode">
           Toggle Switch
@@ -41,7 +45,7 @@ import { LetModule } from '@rx-angular/template/let';
         aria-label="Disable dark mode"
         type="button"
         class="dark"
-        (click)="setChecked(false)"
+        (click)="isLightTheme.setFalse()"
       >
         ☾
       </button>
@@ -51,16 +55,14 @@ import { LetModule } from '@rx-angular/template/let';
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.Emulated,
 })
-export class DarkModeToggleComponent extends RxState<{
-  isLightTheme: boolean;
-}> {
-  isLightTheme$ = this.select('isLightTheme');
+export class DarkModeToggleComponent {
+  isLightTheme = adapt(['isLightTheme', false], booleanAdapter);
 
-  constructor(@Inject(DOCUMENT) private document: Document) {
-    super();
-    this.set({ isLightTheme: true });
-    this.hold(this.isLightTheme$, this.toggleTheme);
-  }
+  applyThemeToDocument$ = this.isLightTheme.state$.pipe(
+    tap((isLightTheme) => this.toggleTheme(isLightTheme))
+  );
+
+  document = inject(DOCUMENT);
 
   toggleTheme = (isLightTheme: boolean): void => {
     if (isLightTheme) {
@@ -71,8 +73,4 @@ export class DarkModeToggleComponent extends RxState<{
       this.document.body.classList.remove('light');
     }
   };
-
-  setChecked(isLightTheme: boolean): void {
-    this.set({ isLightTheme });
-  }
 }
